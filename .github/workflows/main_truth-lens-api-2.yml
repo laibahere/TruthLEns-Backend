@@ -7,35 +7,42 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20  # Increased timeout
+    permissions:
+      contents: read  # Required for actions/checkout
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Create and Start Virtual Environment
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
+
+      - name: Install Dependencies with Retry
+        run: |
+          source venv/bin/activate
+          for i in {1..5}; do pip install -r requirements.txt && break || sleep 15; done
 
       - name: Run Tests (Optional)
         run: |
           source venv/bin/activate
           if [ -f "pytest.ini" ] || [ -d "tests" ]; then 
-            pytest; 
+            pytest
           else 
-            echo "No tests found, skipping."; 
+            echo "No tests found, skipping."
           fi
 
       - name: Build Application
@@ -43,29 +50,44 @@ jobs:
           source venv/bin/activate
           python -m compileall -q .
 
+      - name: Zip Artifact for Deployment
+        run: zip -r release.zip . -x "venv/*"
+
+      - name: Upload Artifact for Deployment Jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: release.zip
+
   deploy:
     needs: build  # Ensures deployment happens only after a successful build
     runs-on: ubuntu-latest
     timeout-minutes: 20  # Increased timeout
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Download Artifact from Build Job
+        uses: actions/download-artifact@v4
         with:
-          python-version: '3.10'
+          name: python-app
+          path: .
 
-      - name: Install Dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
+      - name: Unzip Artifact for Deployment
+        run: unzip -o release.zip -d .
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
         with:
           app-name: 'truth-lens-api'
           slot-name: 'production'
@@ -75,7 +97,7 @@ jobs:
             source venv/bin/activate && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app
         env:
           AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          ENVIRONMENT: "production"
+          ENVIRONMENT: 'production'
 
       - name: Post-Deployment Steps
         run: echo "🚀 Deployment Successful!"
