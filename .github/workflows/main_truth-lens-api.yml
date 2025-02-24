@@ -1,4 +1,4 @@
-name: Deploy TruthLens Backend
+name: Build and Deploy TruthLens Backend
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +28,35 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Pre-Deployment Steps
-      run: echo "Starting Deployment to Azure"
+    - name: Run Tests (Optional)
+      run: |
+        source venv/bin/activate
+        pytest  # Ensure you have tests; remove if not applicable
+
+    - name: Build Application
+      run: |
+        source venv/bin/activate
+        python -m compileall -q .
+
+  deploy:
+    needs: build  # Deploy only if build succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
