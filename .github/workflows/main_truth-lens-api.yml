@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Required for actions/checkout
+      contents: read  # Required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +24,14 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           pip cache purge  # Clears any potentially corrupted dependencies
 
       - name: Install dependencies with retry
         run: |
           source venv/bin/activate
           for i in {1..5}; do pip install -r requirements.txt && break || sleep 15; done
-        
+
       - name: Zip artifact for deployment
         run: zip -r release.zip . -x "venv/*"
 
@@ -61,14 +61,14 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip -o release.zip -d .
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: "truth-lens-api-2"  # Make sure this matches your Azure Web App name
-          package: .
+          app-name: "truth-lens-api-2"  # Ensure this matches your Azure Web App name
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: "."
+
+      - name: Post-Deployment Message
+        run: echo "🚀 Deployment Successful!"
+
