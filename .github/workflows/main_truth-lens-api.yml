@@ -25,7 +25,12 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip cache purge  # Clears any potentially corrupted dependencies
+
+      - name: Install dependencies with retry
+        run: |
+          source venv/bin/activate
+          for i in {1..5}; do pip install -r requirements.txt && break || sleep 15; done
         
       - name: Zip artifact for deployment
         run: zip -r release.zip . -x "venv/*"
@@ -65,7 +70,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'truth-lens-api'
+          app-name: "truth-lens-api"  # Make sure this matches your Azure Web App name
           package: .
-
-          
