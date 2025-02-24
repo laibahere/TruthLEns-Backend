@@ -12,9 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Increased timeout
+    timeout-minutes: 20
     permissions:
-      contents: read  # Required for actions/checkout
+      contents: read
 
     steps:
       - name: Checkout Repository
@@ -60,9 +60,9 @@ jobs:
           path: release.zip
 
   deploy:
-    needs: build  # Ensures deployment happens only after a successful build
+    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Increased timeout
+    timeout-minutes: 20
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -84,16 +84,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'truth-lens-api-2'
-          slot-name: 'production'
+          app-name: 'truth-lens-api-2'  # Ensure this matches your Azure Web App exactly
           package: '.'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          startup-command: |
-            chmod +x venv/bin/activate
-            source venv/bin/activate && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app
-        env:
-          ENVIRONMENT: 'production'
-
-      - name: Post-Deployment Steps
-        run: echo "🚀 Deployment Successful!"
-
