@@ -62,9 +62,4 @@ jobs:
         run: unzip -o release.zip -d .
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'truth-lens-api'  # Change this to your Azure App Service name
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+
