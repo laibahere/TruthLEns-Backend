@@ -51,7 +51,7 @@ jobs:
           python -m compileall -q .
 
       - name: Zip Artifact for Deployment
-        run: zip -r release.zip . -x "venv/*"
+        run: zip -r release.zip . -x "venv/*" "*.pyc" "__pycache__/*" ".git/*" "tests/*"
 
       - name: Upload Artifact for Deployment Jobs
         uses: actions/upload-artifact@v4
@@ -84,6 +84,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'truth-lens-api-2'  # Ensure this matches your Azure Web App exactly
+          app-name: 'truth-lens-api-2'
           package: '.'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
