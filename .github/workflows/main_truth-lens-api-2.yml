@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # Increased timeout
 
     steps:
       - name: Checkout Repository
@@ -45,6 +46,7 @@ jobs:
   deploy:
     needs: build  # Ensures deployment happens only after a successful build
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # Increased timeout
 
     steps:
       - name: Checkout Repository
@@ -68,11 +70,12 @@ jobs:
           app-name: 'truth-lens-api'
           slot-name: 'production'
           package: '.'
-          startup-command: "source venv/bin/activate && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app"
+          startup-command: |
+            chmod +x venv/bin/activate
+            source venv/bin/activate && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app
         env:
           AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           ENVIRONMENT: "production"
 
       - name: Post-Deployment Steps
         run: echo "🚀 Deployment Successful!"
-
