@@ -1,4 +1,3 @@
-# TruthLens-Backend
 
 <!DOCTYPE html>
 <html lang="en">
